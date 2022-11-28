@@ -1,0 +1,20 @@
+
+N	java:S106"9Replace this use of System.out or System.err by a logger.(«Ìã
+V
+java:S1117";Rename "directed" which hides the field declared at line 7.(ÖîÛúÿÿÿÿ
+S	java:S106"9Replace this use of System.out or System.err by a logger.(ËæÚ¯ÿÿÿÿÿ
+S	java:S106"9Replace this use of System.out or System.err by a logger.(îØµüıÿÿÿÿ
+S	java:S106"9Replace this use of System.out or System.err by a logger.(ËæÚ¯ÿÿÿÿÿ
+S	java:S106"9Replace this use of System.out or System.err by a logger.(îØµüıÿÿÿÿ
+N	java:S106%"9Replace this use of System.out or System.err by a logger.(ÊİÉ
+N	java:S106H"9Replace this use of System.out or System.err by a logger.(¢Ö¸“
+N	java:S106I"9Replace this use of System.out or System.err by a logger.(¨Çï•
+S	java:S106R"9Replace this use of System.out or System.err by a logger.(çÖ¸¼üÿÿÿÿ
+m
+java:S1104"RMake matrix a static final constant or non-public and provide accessors if needed.(¹Ô¤Ğøÿÿÿÿ
+o
+java:S1104"TMake directed a static final constant or non-public and provide accessors if needed.(ÚùË»üÿÿÿÿ
+0
+java:S1700"Rename field "matrix"(¹Ô¤Ğøÿÿÿÿ
+0
+java:S1220""Move this file to a named package.
