@@ -1,8 +1,5 @@
 package graph;
 
-import org.w3c.dom.Node;
-
-import java.lang.reflect.Array;
 import java.util.*;
 
 public class Graph {
@@ -13,19 +10,30 @@ public class Graph {
 
     public int[] dist;
 
-    public PriorityQueue<Integer> pq;
+    public PriorityQueue<Node> pq;
 
     public int[] shortest;
     public HashSet<Integer> settled;
-    public Graph(int edges, int vertices) {
-        this.edges = edges;
-        this.vertices = vertices;
+    public Graph() throws Exception {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Podaj ilość wierzchołków: ");
+        this.vertices = Integer.parseInt(scanner.next());
+        System.out.println("Podaj ilość krawędzi: ");
+        this.edges = Integer.parseInt(scanner.next());
         edgeArray = new ArrayList<>();
         for (int i = 0; i < edges; i++) {
-            edgeArray.add(new Edge());
+            System.out.println(i + ") Podaj wierzchołek początkowy: ");
+            int src = Integer.parseInt(scanner.next());
+            System.out.println(i + ") Podaj wierzchołek końcowy: ");
+            int dest = Integer.parseInt(scanner.next());
+            System.out.println(i + ") Podaj wagę krawędzi: ");
+            int weight = Integer.parseInt(scanner.next());
+            if ((0 > src  || src >= vertices) || (0 > dest || dest >= vertices)) {
+                throw new Exception("Niepoprawna wartość wierzchołka");
+            }
+            else edgeArray.add(new Edge(src, dest, weight));
         }
         dist = new int[vertices];
-        pq = new PriorityQueue<Integer>(vertices);
         settled = new HashSet<>();
         shortest = new int[vertices];
     }
@@ -35,123 +43,160 @@ public class Graph {
         this.vertices = vertices;
         this.edgeArray = edgeArray;
         dist = new int[vertices];
-        pq = new PriorityQueue<>(vertices);
         settled = new HashSet<>();
         shortest = new int[vertices];
     }
 
+    public void CPP() {
+        int odd = 0;
+        ArrayList<Integer> oddV = new ArrayList<>();
+        for (int i = 0; i < vertices; i++) {
+            int deg = edgesFromV(i, edgeArray).size();
+            if ( deg % 2 != 0 ) {
+                odd += 1;
+                oddV.add(i);
+            }
+        }
+        if ( odd == 0 ) {
+            applyFleury(0, edgeArray);
+        }
+        else if ( odd == 2) {
+            semiEulerian(oddV.get(0), oddV.get(1));
+        }
+        else {
+            nonEulerian();
+        }
+
+    }
+
     public boolean applyFleury(int v, ArrayList<Edge> edgesLeft) {
         ArrayList<Edge> edgesFrom = edgesFromV(v, edgesLeft);
-//        System.out.println("EDGES FROM: " + edgesFrom.size());
-//        System.out.println(edgesLeft);
         if (edgesLeft.size() == 0) return true;
         if (edgesFrom.size() == 1) {
+
+            // Jeśli jest 1 krawędź, usuwamy ją i przechodzimy dalej
+
             Edge e = edgesFrom.get(0);
-//            System.out.println(e.src + " " +  e.dest + " " + edgesLeft + " == 1");
             edgesLeft.remove(e);
-//            System.out.println(e.src + " " +  e.dest + " " + edgesLeft + " == 1 AFTER");
-            System.out.println(e.src + " - " + e.dest + ": " + e.weight);
-            applyFleury(e.dest, edgesLeft);
+            if (e.dest != v) {
+                 System.out.println(e.src + " - " + e.dest + ": " + e.weight);
+                applyFleury(e.dest, edgesLeft);
+            }
+            else {
+                 System.out.println(e.dest + " - " + e.src + ": " + e.weight);
+                applyFleury(e.src, edgesLeft);
+            }
         }
         else if (edgesFrom.size() > 1) {
             for (Edge e : edgesFrom) {
+
+                // Sprawdzamy za pomocą DFS, czy usunięcie danej krawędzi rozspójnia graf
+
                 int count1 = dfs(e.src);
                 edgeArray.remove(e);
                 int count2 = dfs(e.src);
                 edgeArray.add(e);
                 if (count1 <= count2) {
-//                    System.out.println(e.src + " " +  e.dest + " " + edgesLeft + " > 2");
                     edgesLeft.remove(e);
-//                    System.out.println(e.src + " " +  e.dest + " " + edgesLeft + " > 2 AFTER");
-                    System.out.println(e.src + " - " + e.dest + ": " + e.weight);
-                    applyFleury(e.dest, edgesLeft);
+                    if (e.dest != v) {
+                         System.out.println(e.src + " - " + e.dest + ": " + e.weight);
+                        applyFleury(e.dest, edgesLeft);
+                    }
+                    else {
+                         System.out.println(e.dest + " - " + e.src + ": " + e.weight);
+                        applyFleury(e.src, edgesLeft);
+                    }
                     break;
                 }
                 else {
-//                    System.out.println("Rozspójnia");
+//                     System.out.println("Rozspójnia");
                 }
             }
         }
         else {
-            System.out.println("No edges from x!");
             return false;
         }
         return false;
     }
 
+    public void semiEulerian(int v1, int v2) {
+
+        // uzywamy algorytmu Dijkstry by znaleźć ścieżkę między nieparzystymi wierzchołkami
+        ArrayList<Edge> edgesLeft = new ArrayList<>(edgeArray);
+        this.dijkstra(v1);
+
+        // wypisujemy ścieżkę Eulerowską, zaczynając od nieparzystego wierzchołka
+        applyFleury(v1, edgesLeft);
+
+        // wypisujemy ścieżkę "powrotną"
+        ArrayList<Edge> path = new ArrayList<>();
+        int j = v2;
+        while (j != v1) {
+            int next = shortest[j];
+            Edge e = getEdge(j, next);
+            path.add(e);
+            j = next;
+        }
+        for (Edge e : path) {
+             System.out.println(e.src + " - " + e.dest + ": " + e.weight);
+        }
+    }
+
     public void nonEulerian() {
         Set<Integer> oddVertices = new LinkedHashSet<>();
         for (int v = 0; v < vertices; v++) {
-            System.out.println(edgesFromV(v, edgeArray).size());
             if (edgesFromV(v, edgeArray).size() % 2 != 0) {
                 oddVertices.add(v);
             }
         }
+
+        // generowanie par wierchołków o nieparzystym stopniu
+
         ArrayList<List<List<Integer>>> pairings = new ArrayList<List<List<Integer>>>();
         generatePairs(oddVertices, new ArrayList<List<Integer>>(), pairings);
 
+        // znalezienie zbioru par wierchołków o najmniejszej wadze
+
         int minSum = Integer.MAX_VALUE;
-        ArrayList<List<Integer>> minResult = new ArrayList<>();
         ArrayList<List<Edge>> minPaths = new ArrayList<>();
-        for (List<List<Integer>> result : pairings)
-        {
-//            System.out.println(result);
+
+        for (List<List<Integer>> result : pairings) {
+
             int curSum = 0;
             ArrayList<List<Edge>> paths = new ArrayList<>();
             for (List<Integer> pair : result) {
-                System.out.println("PAIR: " + pair.get(0) + "  " + pair.get(1));
                 this.dijkstra(pair.get(0));
                 curSum += dist[pair.get(1)];
                 ArrayList<Edge> path = new ArrayList<>();
-//                for (int j=0; j < edges; j++) {
-//                    System.out.println("SHORTEST: " + shortest[j] + " " + shortest [j+1]);
-//                    Edge e = getEdge(shortest[j], shortest[j+1]);
-//                    path.add(e);
-//                    if (shortest[j+1] == pair.get(0)) {
-//                        paths.add(path);
-//                        break;
-//                    }
-//                }
                 int j = pair.get(1);
-                for (int i : shortest) {
-                    System.out.println(i + " <-");
-                }
+
                 while (j != pair.get(0)) {
                     int next = shortest[j];
-                    System.out.println("SHORTEST: " + next + " " + shortest[next]);
-                    Edge e = getEdge(next, shortest[next]);
+                    Edge e = getEdge(j, next);
                     path.add(e);
                     j = next;
                 }
-                Edge lastEdge = getEdge(pair.get(0), j);
-                System.out.println("LAST EDGE: " + lastEdge.src + " " + lastEdge.dest + " " + lastEdge.weight);
-                path.add(lastEdge);
+
                 paths.add(path);
             }
-            for (int i : dist) {
-                System.out.println("dist: "+i);
-            }
-            System.out.println(curSum);
+
             if (curSum < minSum) {
                 minSum = curSum;
-                minResult = (ArrayList<List<Integer>>) result;
                 minPaths = paths;
             }
         }
 
-//        System.out.println("MIN RESULT, MIN SUM:");
-//        System.out.println(minResult + "  " + minSum);;
+        // dodawanie nowych krawędzi do pozostałych krawędzi grafu
+        // w ten sposób otrzymujemy graf eulerowski
+
         ArrayList<Edge> newEdges = new ArrayList<>();
         for (List<Edge> p : minPaths) {
             newEdges.addAll(p);
-            for (Edge e : p) {
-                System.out.println("EDGE" + e.src + e.dest + e.weight);
-            }
         }
         edgeArray.addAll(newEdges);
-        System.out.println(edgeArray);
         ArrayList<Edge> edgesLeft = new ArrayList<>();
         edgesLeft.addAll(edgeArray);
+
         applyFleury(0, edgesLeft);
     }
 
@@ -176,8 +221,9 @@ public class Graph {
         }
     }
 
-    public void dijkstra( int src)
+    public void dijkstra(int src)
     {
+        // inicjalizacja zmiennych
         dist = new int[vertices];
         pq = new PriorityQueue<>(vertices);
         settled = new HashSet<>();
@@ -185,33 +231,23 @@ public class Graph {
         for (int i = 0; i < vertices; i++)
             dist[i] = Integer.MAX_VALUE;
 
-        // Add source node to the priority queue
-        pq.add(src);
+        pq.add(new graph.Node(src, 0));
 
-        // Distance to the source is 0
         dist[src] = 0;
 
         while (settled.size() != vertices) {
 
-            // Terminating condition check when
-            // the priority queue is empty, return
+            // Zakończenie pętli, jeżeli kolejka jest pusta
             if (pq.isEmpty())
                 return;
 
-            // Removing the minimum distance node
-            // from the priority queue
-            int u = (int) pq.remove();
+            // Usuwany jest node o najmniejszym koszcie
+            int u = pq.remove().node;
 
-            // Adding the node whose distance is
-            // finalized
+            // Pominięcie wierzchołka, jeżeli znajduje się już w zbiorze wierzchołków odwiedzonych
             if (settled.contains(u))
-
-                // Continue keyword skips execution for
-                // following check
                 continue;
 
-            // We don't have to call e_Neighbors(u)
-            // if u is already present in the settled set.
             settled.add(u);
 
             e_Neighbours(u);
@@ -224,28 +260,32 @@ public class Graph {
         int edgeDistance = -1;
         int newDistance = -1;
 
-        // All the neighbors of v
+        // Wykonaj dla wszystkich sąsiadów wierzchołka u
         for (int i = 0; i < edgesFromV(u, edgeArray).size(); i++) {
             Edge e = edgesFromV(u, edgeArray).get(i);
 
-            int node = e.src;
-            if (node == u) {
-                node = e.dest;
+            // Zamiana wierzchołḱa, aby był on tym końcowym
+
+            int v = e.src;
+            if (v == u) {
+                v = e.dest;
             }
 
-            // If current node hasn't already been processed
-            if (!settled.contains(node)) {
-                edgeDistance = e.weight;
+            Node node = new Node(v, e.weight);
+
+            // Wykonaj, jeśli obecny node nie został obsłużony
+            if (!settled.contains(node.node)) {
+                edgeDistance = node.cost;
                 newDistance = dist[u] + edgeDistance;
 
-                // If new distance is cheaper in cost
-                if (newDistance < dist[node]){
-                    dist[node] = newDistance;
-                    shortest[node] = u;
+                // Wykonaj, jeżeli nowy dystans jest mniejszy od obecnego
+                if (newDistance < dist[node.node]){
+                    dist[node.node] = newDistance;
+                    shortest[node.node] = u;
                 }
 
-                // Add the current node to the queue
-                pq.add(node);
+                // Dodaj obecny node do kolejki
+                pq.add(new Node(node.node, dist[node.node]));
             }
         }
     }
@@ -256,11 +296,6 @@ public class Graph {
         }
         return new Edge(0, 0, 1);
     }
-
-//    public int calcPath(int src, int dest) {
-//        dijkstra(src);
-//
-//    }
 
     public ArrayList<Edge> edgesFromV(int v, ArrayList<Edge> edgesLeft) {
         ArrayList<Edge> edges = new ArrayList<>();
@@ -279,7 +314,6 @@ public class Graph {
     }
 
     public void visit(ArrayList<Integer> treelist, int v) {
-//        ArrayList<Edge> edges = new ArrayList<>(List.of(edgeArray));
         for (int i = 0; i < vertices; i++) {
             if (!treelist.contains(i) && checkEdge(v, i)) {
                 treelist.add(i);
@@ -294,73 +328,4 @@ public class Graph {
         }
         return false;
     }
-//    public void applyKruskal() {
-//
-//        // Inicjalizacja finalResult - tablicy przechowującej końcowe MST
-//        Edge[] finalResult = new Edge[vertices];
-//        int newEdge = 0;
-//        int index = 0;
-//        for (index = 0; index < vertices; ++index)
-//            finalResult[index] = new Edge();
-//
-//        // sortowanie krawędzi
-//        Arrays.sort(edgeArray);
-//
-//        // Tworzymy podzbiory dla każdego wierzchołka
-//        Subset[] subsetArray = new Subset[vertices];
-//
-//        for (index = 0; index < vertices; ++index)
-//            subsetArray[index] = new Subset();
-//
-//        for (int vertex = 0; vertex < vertices; ++vertex) {
-//            subsetArray[vertex].parent = vertex;
-//            subsetArray[vertex].value = 0;
-//        }
-//        index = 0;
-//
-//        // Iterujemy dopóki nie znajdziemy wszystkich krawędzi
-//        while (newEdge < vertices - 1) {
-//            // tworzenie instancji Edge dla nowej krawędzi
-//            Edge nextEdge = edgeArray[index++];
-//
-//            int nextsrc = findSetOfElement(subsetArray, nextEdge.src);
-//            int nextdest = findSetOfElement(subsetArray, nextEdge.dest);
-//
-//            // Jeśli krawędź nie tworzy cyklu, to dodajemy ją do rozwiązanie
-//            if (nextsrc != nextdest) {
-//                finalResult[newEdge++] = nextEdge;
-//                performUnion(subsetArray, nextsrc, nextdest);
-//            }
-//        }
-//
-//        // Wypisanie wyniku
-//
-//        for (index = 0; index < newEdge; ++index)
-//            System.out.println(finalResult[index].src + " - " + finalResult[index].dest + ": " + finalResult[index].weight);
-//    }
-//
-//    // create findSetOfElement() method to get set of an element
-//    private int findSetOfElement(Subset[] subsetArray, int i) {
-//        if (subsetArray[i].parent != i)
-//            subsetArray[i].parent = findSetOfElement(subsetArray, subsetArray[i].parent);
-//        return subsetArray[i].parent;
-//    }
-
-    // metoda łącząca zbiory
-//    private void performUnion(Subset[] subsetArray, int srcRoot, int destRoot) {
-//
-//        int nextsrcRoot = findSetOfElement(subsetArray, srcRoot);
-//        int nextdestRoot = findSetOfElement(subsetArray, destRoot);
-//
-//        if (subsetArray[nextsrcRoot].value < subsetArray[nextdestRoot].value)
-//            subsetArray[nextsrcRoot].parent = nextdestRoot;
-//        else if (subsetArray[nextsrcRoot].value > subsetArray[nextdestRoot].value)
-//            subsetArray[nextdestRoot].parent = nextsrcRoot;
-//        else {
-//            subsetArray[nextdestRoot].parent = nextsrcRoot;
-//            subsetArray[nextsrcRoot].value++;
-//        }
-//
-//
-//    }
 }
