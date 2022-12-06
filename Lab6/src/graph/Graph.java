@@ -49,35 +49,41 @@ public class Graph {
     }
 
     public void christofides() {
+
+        for (int u = 0; u < vertices; u++) {
+            for (int v = 0; v < vertices; v++) {
+                for (int w = 0; w < vertices; w++) {
+                    if (u != v && u != w && w != v) {
+                        Edge edge1 = getEdge(u, v);
+                        Edge edge2 = getEdge(u, w);
+                        Edge edge3 = getEdge(v, w);
+                        if (edge1.weight > edge2.weight + edge3.weight || edge2.weight > edge1.weight + edge3.weight || edge3.weight > edge1.weight + edge2.weight) {
+                            System.out.println("Krawedzi grafu nie spelniaja warunku trojkata!");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
         // tworzenie minimalnego drzewa rozpinającego
         Graph mst = new Graph(vertices - 1, vertices, this.applyKruskal());
-        System.out.println("MST EDGEARRAY:");
-        for (int index = 0; index < mst.edgeArray.size(); ++index)
-            System.out.println(mst.edgeArray.get(index).src + " - " + mst.edgeArray.get(index).dest + ": " + mst.edgeArray.get(index).weight);
-        System.out.println("CPP:");
-//        mst.CPP();
         // tworzenie zbioru wierzchołków o nieparzystym stopniu w mst
         Set<Integer> oddVertices = new LinkedHashSet<>();
-        System.out.println("EDGE ARRAY SIZE: " + mst.edgeArray);
         for (int v = 0; v < vertices; v++) {
             if (edgesFromV(v, mst.edgeArray).size() % 2 != 0) {
                 oddVertices.add(v);
-                System.out.println("ODD EDGE: " + v);
             }
         }
 
         ArrayList<Edge> subgraphEdges = new ArrayList<>();
         ArrayList<Integer> oddVerticesList = new ArrayList<>(oddVertices.stream().toList());
-        System.out.println("SIZE: " + oddVertices.size());
         for (int v = 0; v < oddVertices.size() - 1; v++) {
             for (int w = v + 1; w < oddVertices.size(); w++) {
-                System.out.println(oddVerticesList.get(v) + "  :  " + oddVerticesList.get(w));
                 Edge subEdge = getEdge(oddVerticesList.get(v), oddVerticesList.get(w));
                 subgraphEdges.add(subEdge);
             }
         }
-        for (int index = 0; index < subgraphEdges.size(); ++index)
-            System.out.println(subgraphEdges.get(index).src + " - " + subgraphEdges.get(index).dest + ": " + subgraphEdges.get(index).weight);
 
         Graph subgraph = new Graph(subgraphEdges.size(), vertices, subgraphEdges);
 
@@ -122,7 +128,6 @@ public class Graph {
         mst.edgeArray.addAll(newEdges);
         ArrayList<Edge> edgesLeft = new ArrayList<>(mst.edgeArray);
 
-        System.out.println("MST AFTER FLEURY: ");
         ArrayList<Integer> visitedVertices = new ArrayList<>();
         mst.applyFleury(0, edgesLeft, visitedVertices);
 
@@ -141,7 +146,6 @@ public class Graph {
 
             Edge e = edgesFrom.get(0);
             edgesLeft.remove(e);
-            System.out.println("CHECK == 1: " + e.src + " : " + e.dest + "  " + visitedVertices);
             if (e.dest != v) {
                  if (printCheck(visitedVertices, edgesLeft, e.dest))
                      System.out.println("|\nv\n" + e.dest);
@@ -172,10 +176,8 @@ public class Graph {
                 edgeArray.add(e);
                 if (count1 <= count2) {
                     edgesLeft.remove(e);
-                    System.out.println("CHECK > 1: " + e.src + " : " + e.dest + "  " + visitedVertices);
                     if (e.dest != v) {
                         if (edgesLeft.size() == edgeArray.size() - 1) {
-                            System.out.println("POCZĄTEK");
                             System.out.println(e.src + "\n|\nv\n" + e.dest);
                         }
                         else if (printCheck(visitedVertices, edgesLeft, e.dest))
@@ -379,8 +381,6 @@ public class Graph {
         finalResult.remove(newEdge);
 
         // Wypisanie wyniku
-        for (index = 0; index < newEdge; ++index)
-            System.out.println(finalResult.get(index).src + " - " + finalResult.get(index).dest + ": " + finalResult.get(index).weight);
         return finalResult;
     }
 
